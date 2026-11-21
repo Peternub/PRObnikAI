@@ -49,6 +49,7 @@ test('Полный сценарий всех предметов, приватн�
     for (const exam of exams) {
       const purchase = await request('/api/orders', 'POST', { examId: exam.id }, cookie);
       const order = purchase.body.order;
+      assert.equal(order.examSnapshot, undefined);
       assert.equal(order.amount, 29900);
       assert.equal((await request('/api/orders', 'POST', { examId: exam.id }, cookie)).body.order.id, order.id);
       assert.equal((await request('/api/attempts', 'POST', { orderId: order.id }, cookie)).status, 402);
@@ -60,6 +61,8 @@ test('Полный сценарий всех предметов, приватн�
       const active = await request(`/api/attempts/${id}`, 'GET', null, cookie);
       assert.equal(active.body.tasks[0].answers, undefined);
       assert.equal(active.body.tasks[0].explanation, undefined);
+      assert.equal(active.body.attempt.examSnapshot, undefined);
+      assert.equal(active.body.attempt.userId, undefined);
       for (const task of exam.tasks.filter(t => t.type === 'short')) {
         assert.equal((await request(`/api/attempts/${id}/answers`, 'PATCH', { taskId: task.id, text: task.answers[0] }, cookie)).status, 200);
       }
@@ -88,5 +91,11 @@ test('Полный сценарий всех предметов, приватн�
     assert.equal((await request(`/api/attempts/${attempt.id}/answers`, 'PATCH', { taskId: 1, text: 'е' }, cookie)).status, 409);
     assert.equal((await request(`/api/attempts/${attempt.id}`, 'GET', null, cookie)).body.attempt.status, 'checking');
     assert.equal((await request('/api/dashboard', 'GET', null, cookie)).body.attempts.length, 15);
+    const snapshot = await store.transaction(tx => tx.list('attempts').find(a => a.examId === 'math'));
+    const original = findExam('math').tasks[0].prompt;
+    findExam('math').tasks[0].prompt = 'Изменённое условие нового банка';
+    const previous = await request(`/api/attempts/${snapshot.id}`, 'GET', null, cookie);
+    findExam('math').tasks[0].prompt = original;
+    assert.equal(previous.body.tasks[0].prompt, original);
   } finally { await new Promise(resolve => server.close(resolve)); await rm(dir, { recursive: true, force: true }); }
 });
