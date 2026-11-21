@@ -35,7 +35,7 @@ export async function createApp(options = {}) {
       const file = resolve(root, `.${decodeURIComponent(path === '/' ? '/index.html' : path)}`);
       assert(file.startsWith(root + sep), 403, 'Доступ запрещён.');
       const data = await readFile(file);
-      const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf' };
+      const mime = { '.html': 'text/html; charset=utf-8', '.css': 'text/css; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.woff': 'font/woff', '.ttf': 'font/ttf', '.otf': 'font/otf' };
       res.writeHead(200, { 'Content-Type': mime[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-cache' });
       res.end(req.method === 'HEAD' ? undefined : data);
     } catch (error) {
