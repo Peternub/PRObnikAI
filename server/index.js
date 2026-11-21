@@ -5,12 +5,14 @@ import { pathToFileURL } from 'node:url';
 import { config } from './config.js';
 import { createStore } from './store.js';
 import { createAuth } from './auth.js';
+import { createExams } from './exams.js';
 import { assert, json } from './http.js';
 
 export async function createApp(options = {}) {
   const settings = { ...config, ...options };
   const store = await createStore({ databaseUrl: settings.databaseUrl, file: settings.file });
   const auth = createAuth(store, settings);
+  const exams = createExams(store, auth, settings);
   const root = resolve('public');
   const server = createServer(async (req, res) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -26,6 +28,7 @@ export async function createApp(options = {}) {
         if (path === '/api/health') return json(res, { ok: true, demo: settings.demo });
         if (path === '/api/me' && req.method === 'GET') return json(res, { user: await auth.user(req), demo: settings.demo });
         if (await auth.handle(req, res, path)) return;
+        if (await exams.handle(req, res, path)) return;
         return json(res, { error: 'Маршрут не найден.' }, 404);
       }
       assert(['GET', 'HEAD'].includes(req.method), 405, 'Метод не поддерживается.');
@@ -41,7 +44,7 @@ export async function createApp(options = {}) {
       json(res, { error: status === 500 ? 'Не удалось выполнить запрос. Попробуйте позже.' : error.message }, status);
     }
   });
-  server.on('close', () => store.close());
+  server.on('close', () => { exams.stop(); void store.close(); });
   return { server, store, auth };
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
