@@ -1,7 +1,19 @@
 import { mkdir, readFile, writeFile, rename } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 
 const empty = () => ({ users: {}, codes: {}, sessions: {}, orders: {}, attempts: {} });
+
+async function replaceFile(source, target) {
+  // В Windows антивирус может кратковременно удерживать файл после записи.
+  for (let attempt = 0; ; attempt++) {
+    try { await rename(source, target); return; }
+    catch (error) {
+      if (!['EPERM', 'EBUSY', 'EACCES'].includes(error.code) || attempt >= 6) throw error;
+      await delay(25 * (attempt + 1));
+    }
+  }
+}
 
 export async function createStore({ databaseUrl, file = resolve('.data/state.json') } = {}) {
   let pool;
@@ -48,7 +60,7 @@ export async function createStore({ databaseUrl, file = resolve('.data/state.jso
         } else if (changed.size || removed.length) {
           await mkdir(dirname(file), { recursive: true });
           await writeFile(`${file}.tmp`, JSON.stringify(draft), { mode: 0o600 });
-          await rename(`${file}.tmp`, file);
+          await replaceFile(`${file}.tmp`, file);
           state = draft;
         }
         return structuredClone(result);
