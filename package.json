@@ -1,0 +1,20 @@
+{
+  "name": "probnik-ai",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Онлайн-пробники ОГЭ с разбором решений",
+  "engines": {
+    "node": ">=22.17"
+  },
+  "scripts": {
+    "dev": "node --watch --env-file-if-exists=.env server/index.js",
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "test": "node --test --test-concurrency=1",
+    "check": "node scripts/check.js"
+  },
+  "dependencies": {
+    "nodemailer": "^10.6.1",
+    "pg": "^8.16.0"
+  }
+}
